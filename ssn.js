@@ -1,7 +1,7 @@
 (async () => {
     // --- SECURE ACCESS GATE ---
-    const _uX = "c3NuZ2F0ZXBhc3M="; // ssngatepass
-    const _pX = "d2VhcmVub3RzbGF2ZXM="; // wearenotslaves
+    const _uX = "c3NuZ2F0ZXBhc3M="; 
+    const _pX = "d2VhcmVub3RzbGF2ZXM="; 
 
     const masterContainerId = 'ssn-master-integrated-suite';
     if (document.getElementById(masterContainerId)) document.getElementById(masterContainerId).remove();
