@@ -1,7 +1,7 @@
 (async () => {
     // --- SECURE ACCESS GATE ---
-    const _uX = "c3NuZ2F0ZXBhc3M="; 
-    const _pX = "d2VhcmVub3RzbGF2ZXM="; 
+    const _uX = "c3NuZ2F0ZXBhc3M=";
+    const _pX = "d2VhcmVub3RzbGF2ZXM=";
 
     const masterContainerId = 'ssn-master-integrated-suite';
     if (document.getElementById(masterContainerId)) document.getElementById(masterContainerId).remove();
@@ -43,7 +43,7 @@
             font-size: 13px; border: 2px solid white; font-family: sans-serif;
         }
 
-        /* Shared Result Table Styles (For Tool 1, 8, 9) */
+        /* Result Table Styles */
         .v-card-full { background: #fff; width: 98%; max-width: 1350px; height: 85vh; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         .v-header-fixed { padding: 15px 25px; border-bottom: 1px solid #ddd; background: #f8f9fa; display: flex; justify-content: space-between; align-items: center; }
         .v-table-box { flex: 1; overflow: auto; }
@@ -56,7 +56,7 @@
     `;
     document.head.appendChild(dashStyle);
 
-    // --- DASHBOARD NAVIGATION ---
+    // --- NAVIGATION FUNCTIONS ---
     window.verifySsnLogin = () => {
         const u = document.getElementById('ssn-user').value;
         const p = document.getElementById('ssn-pass').value;
@@ -80,7 +80,7 @@
         document.getElementById('ssn-floating-home-btn').style.display = 'none';
     };
 
-    // --- MAIN DASHBOARD UI ---
+    // --- DASHBOARD UI ---
     const dashboardHTML = `
     <div id="ssn-floating-home-btn" onclick="window.returnToSsnHome()">🏠 BACK TO HOME</div>
     <div id="${masterContainerId}">
@@ -108,7 +108,7 @@
     document.body.insertAdjacentHTML('beforeend', dashboardHTML);
 
     // ==========================================
-    // 1. History Fetcher (Integrated UI)
+    // 1. History Fetcher (Modified with Extra Column)
     // ==========================================
     async function runTool1() {
         const userId = prompt("Enter Student User ID (e.g., 2430094):");
@@ -121,7 +121,7 @@
                         <div><strong id="h-title" style="font-size:16px;">Fetching Student History...</strong></div>
                         <button onclick="document.getElementById('${modalId}').remove(); window.returnToSsnHome();" style="padding:6px 12px; cursor:pointer; background:#fff; border:1px solid #ccc; border-radius:4px; font-weight:bold;">Close</button>
                     </div>
-                    <div class="v-table-box"><table class="v-table"><thead><tr><th>REQUEST ID</th><th>TYPE</th><th>STATUS</th><th>TRAVEL DATES</th><th>PLACE</th></tr></thead><tbody id="h-tbody"></tbody></table></div>
+                    <div class="v-table-box"><table class="v-table"><thead><tr><th>REQUEST ID</th><th>TYPE</th><th>STATUS</th><th>TRAVEL DATES</th><th>ACTUAL SCANS</th><th>PLACE</th></tr></thead><tbody id="h-tbody"></tbody></table></div>
                 </div>
             </div>`);
         try {
@@ -129,21 +129,27 @@
             const database = new Appwrite.Databases(client);
             const res = await database.listDocuments('ssndb', 'gatepassRequests', [Appwrite.Query.equal('students', userId), Appwrite.Query.orderDesc('$createdAt')]);
             const tbody = document.getElementById('h-tbody');
-            if (res.documents.length === 0) { tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:50px;">No records.</td></tr>`; return; }
+            if (res.documents.length === 0) { tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:50px;">No records.</td></tr>`; return; }
             document.getElementById('h-title').innerText = `History: ${res.documents[0].students?.aadharName || 'Unknown'} (${userId})`;
             res.documents.forEach(d => {
-                tbody.insertAdjacentHTML('beforeend', `<tr><td><span class="full-id-tag">${d.$id}</span></td><td style="font-weight:bold; color:#4338ca;">${d.requestType}</td><td>${d.status.toUpperCase()}</td><td>Out: ${new Date(d.startDate).toLocaleString('en-IN')}<br>In: ${new Date(d.endDate).toLocaleString('en-IN')}</td><td style="font-weight:600;">${d.place}</td></tr>`);
+                tbody.insertAdjacentHTML('beforeend', `<tr>
+                    <td><span class="full-id-tag">${d.$id}</span></td>
+                    <td style="font-weight:bold; color:#4338ca;">${d.requestType}</td>
+                    <td><span class="badge b-app">${d.status.toUpperCase()}</span></td>
+                    <td style="font-size:10px;">Out: ${new Date(d.startDate).toLocaleString('en-IN')}<br>In: ${new Date(d.endDate).toLocaleString('en-IN')}</td>
+                    <td style="font-size:10px; color:#64748b;">Out: ${d.outTime ? new Date(d.outTime).toLocaleString('en-IN') : '---'}<br>In: ${d.inTime ? new Date(d.inTime).toLocaleString('en-IN') : '---'}</td>
+                    <td style="font-weight:600;">${d.place}</td>
+                </tr>`);
             });
         } catch (e) { alert(e.message); }
     }
 
     // ==========================================
-    // 2. New Pass Creator (EXACT CODE PROVIDED)
+    // 2. New Pass Creator (VERBATIM CODE)
     // ==========================================
     function runTool2() {
         (async () => {
-            const modalId = 'minimal-creator-modal';
-            if (document.getElementById(modalId)) document.getElementById(modalId).remove();
+            const modalId = 'minimal-creator-modal'; if (document.getElementById(modalId)) document.getElementById(modalId).remove();
             const style = document.createElement('style');
             style.innerHTML = `#${modalId} { z-index: 2147483647; position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.6); font-family: sans-serif; } .c-card { background: #fff; width: 420px; border-radius: 8px; overflow: hidden; border: 1px solid #ddd; box-shadow: 0 10px 25px rgba(0,0,0,0.3); } .c-header { background: #f8f9fa; padding: 15px; border-bottom: 1px solid #eee; text-align: center; } .c-body { padding: 25px; } .c-input { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 14px; outline: none; } .c-input:focus { border-color: #0056b3; } .c-btn { width: 100%; padding: 12px; margin-top: 15px; background: #0056b3; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; } .c-btn:hover { background: #004494; } .type-btn { width: 100%; padding: 12px; border: 1px solid #eee; margin-bottom: 8px; border-radius: 4px; cursor: pointer; text-align: left; font-size: 14px; background: #fff; font-weight: 600; color: #444; } .type-btn:hover { border-color: #0056b3; background: #f0f7ff; color: #0056b3; } .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; } .label { font-size: 11px; font-weight: bold; color: #666; text-transform: uppercase; } .dot-box { display: flex; gap: 5px; justify-content: center; margin-top: 15px; } .dot { width: 30px; height: 4px; background: #eee; border-radius: 2px; transition: 0.3s; } .dot.active { background: #0056b3; }`;
             document.head.appendChild(style);
@@ -162,7 +168,7 @@
             };
             window.setT = (type) => { state.type = type; window.move(3); };
             window.saveStep3 = () => { const fmt = (d, t) => new Date(`${d}T${t}:00+05:30`).toISOString(); state.place = document.getElementById('in-place').value || "Home"; state.purpose = document.getElementById('in-purp').value || "Personal"; state.startDate = fmt(document.getElementById('d-d').value, document.getElementById('d-t').value); state.endDate = fmt(document.getElementById('r-d').value, document.getElementById('r-t').value); window.move(4); };
-            window.finish = async (scan) => { if (scan) state.outTime = new Date(`${document.getElementById('s-d').value}T${document.getElementById('s-t').value}:00+05:30`).toISOString(); let finalData = { students: state.userId, requestType: state.type, place: state.place, purpose: state.purpose, startDate: state.startDate, endDate: state.endDate, outTime: state.outTime, inTime: null, status: 'approved', wardenApproval: 'approved', numberOfDays: 1 }; if (state.type === 'workingDayPass') { finalData.mentorApproval = 'approved'; finalData.supervisorApproval = 'exempted'; } else { finalData.mentorApproval = 'exempted'; finalData.supervisorApproval = 'approved'; } try { await database.createDocument('ssndb', 'gatepassRequests', 'unique()', finalData); document.getElementById(modalId).remove(); alert("Success! New pass generated."); } catch (e) { alert("Failed: " + e.message); window.move(1); } };
+            window.finish = async (scan) => { if (scan) state.outTime = new Date(`${document.getElementById('s-d').value}T${document.getElementById('s-t').value}:00+05:30`).toISOString(); let finalData = { students: state.userId, requestType: state.type, place: state.place, purpose: state.purpose, startDate: state.startDate, endDate: state.endDate, outTime: state.outTime, inTime: null, status: 'approved', wardenApproval: 'approved', numberOfDays: 1 }; if (state.type === 'workingDayPass') { finalData.mentorApproval = 'approved'; finalData.supervisorApproval = 'exempted'; } else { finalData.mentorApproval = 'exempted'; finalData.supervisorApproval = 'approved'; } try { await database.createDocument('ssndb', 'gatepassRequests', 'unique()', finalData); document.getElementById(modalId).remove(); alert("Success! New pass has been generated."); } catch (e) { alert("Failed: " + e.message); window.move(1); } };
             window.move(1);
         })();
     }
@@ -172,10 +178,9 @@
     // ==========================================
     function runTool3() {
         (async () => {
-            const modalId = 'minimal-architect-modal';
-            if (document.getElementById(modalId)) document.getElementById(modalId).remove();
+            const modalId = 'minimal-architect-modal'; if (document.getElementById(modalId)) document.getElementById(modalId).remove();
             const style = document.createElement('style');
-            style.innerHTML = `#${modalId} { z-index: 2147483647; position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.5); font-family: sans-serif; } .m-card { background: #fff; width: 400px; border-radius: 8px; overflow: hidden; border: 1px solid #ccc; box-shadow: 0 4px 12px rgba(0,0,0,0.2); } .m-header { background: #f4f4f7; padding: 15px; border-bottom: 1px solid #ddd; text-align: center; } .m-body { padding: 20px; } .m-input { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 14px; } .m-btn { width: 100%; padding: 12px; margin-top: 15px; background: #0056b3; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; } .m-btn:hover { background: #004494; } .m-btn-alt { background: none; border: none; color: #666; width: 100%; margin-top: 10px; cursor: pointer; font-size: 12px; } .type-opt { padding: 12px; border: 1px solid #eee; margin-bottom: 8px; border-radius: 4px; cursor: pointer; font-size: 14px; display: flex; justify-content: space-between; } .type-opt:hover { border-color: #0056b3; background: #f0f7ff; } .type-opt.current { border-color: #28a745; background: #f3faf5; color: #155724; font-weight: bold; } .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; } .label { font-size: 11px; font-weight: bold; color: #555; }`;
+            style.innerHTML = `#${modalId} { z-index: 2147483647; position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.5); font-family: sans-serif; } .m-card { background: #fff; width: 400px; border-radius: 8px; overflow: hidden; border: 1px solid #ccc; box-shadow: 0 4px 12px rgba(0,0,0,0.2); } .m-header { background: #f4f4f7; padding: 15px; border-bottom: 1px solid #ddd; text-align: center; } .m-body { padding: 20px; } .m-input { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 14px; } .m-btn { width: 100%; padding: 12px; margin-top: 15px; background: #0056b3; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; } .m-btn:hover { background: #004494; } .m-btn-alt { background: none; border: none; color: #666; width: 100%; margin-top: 10px; cursor: pointer; font-size: 12px; } .type-opt { padding: 12px; border: 1px solid #eee; margin-bottom: 8px; border-radius: 4px; cursor: pointer; font-size: 14px; display: flex; justify-content: space-between; } .type-opt.current { border-color: #28a745; background: #f3faf5; color: #155724; font-weight: bold; } .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; } .label { font-size: 11px; font-weight: bold; color: #555; }`;
             document.head.appendChild(style);
             const modalHTML = `<div id="${modalId}"><div class="m-card"><div class="m-header"><strong>Gatepass Modifier</strong></div><div id="m-content" class="m-body"></div><div style="padding: 0 20px 20px;"><button onclick="document.getElementById('${modalId}').remove()" class="m-btn-alt">Cancel & Abort</button></div></div></div>`;
             document.body.insertAdjacentHTML('beforeend', modalHTML);
@@ -191,25 +196,24 @@
             };
             window.setPass = (type) => { state.payload = { requestType: type, status: 'approved', wardenApproval: 'approved' }; if (type === 'workingDayPass') { state.payload.mentorApproval = 'approved'; state.payload.supervisorApproval = 'exempted'; } else { state.payload.mentorApproval = 'exempted'; state.payload.supervisorApproval = 'approved'; } window.nav(3); };
             window.saveMeta = () => { const fmt = (d, t) => new Date(`${d}T${t}:00+05:30`).toISOString(); state.payload.place = document.getElementById('p-place').value || "Home"; state.payload.purpose = document.getElementById('p-purpose').value || "Personal"; state.payload.startDate = fmt(document.getElementById('d-d').value, document.getElementById('d-t').value); state.payload.endDate = fmt(document.getElementById('r-d').value, document.getElementById('r-t').value); window.nav(4); };
-            window.finalize = async (scan) => { if (scan) state.payload.outTime = new Date(`${document.getElementById('s-d').value}T${document.getElementById('s-t').value}:00+05:30`).toISOString(); try { await database.updateDocument('ssndb', 'gatepassRequests', state.id, state.payload); document.getElementById(modalId).remove(); alert("Pass updated successfully."); } catch (e) { alert("Failed: " + e.message); window.nav(1); } };
-            window.nav(1);
+            window.finalize = async (scan) => { if (scan) state.payload.outTime = new Date(`${document.getElementById('s-d').value}T${document.getElementById('s-t').value}:00+05:30`).toISOString(); try { await database.updateDocument('ssndb', 'gatepassRequests', state.id, state.payload); document.getElementById(modalId).remove(); alert("Pass updated successfully."); } catch (e) { alert("Failed: " + e.message); window.nav(1); } }; window.nav(1);
         })();
     }
 
     // ==========================================
-    // 4. Scan Out
+    // 4 - 7. Manual Tools (Verbatim Logic)
     // ==========================================
     function runTool4() {
         (async () => {
             const modalId = 'minimal-scanout-modal'; if (document.getElementById(modalId)) document.getElementById(modalId).remove();
-            const style = document.createElement('style'); style.innerHTML = `#${modalId} { z-index: 2147483647; position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.6); font-family: sans-serif; } .s-card { background: #fff; width: 400px; border-radius: 8px; overflow: hidden; border: 1px solid #ddd; box-shadow: 0 10px 25px rgba(0,0,0,0.3); } .s-header { background: #fffcf5; padding: 15px; border-bottom: 1px solid #fceec7; text-align: center; color: #856404; } .s-body { padding: 25px; } .s-input { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 14px; outline: none; } .s-btn { width: 100%; padding: 12px; margin-top: 15px; background: #d97706; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; } .label { font-size: 10px; font-weight: bold; color: #64748b; text-transform: uppercase; margin-top: 8px; display: block; } .val { font-size: 13px; color: #1e293b; font-weight: 600; } .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 5px; }`;
+            const style = document.createElement('style'); style.innerHTML = `#${modalId} { z-index: 2147483647; position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.6); font-family: sans-serif; } .s-card { background: #fff; width: 400px; border-radius: 8px; overflow: hidden; border: 1px solid #ddd; box-shadow: 0 10px 25px rgba(0,0,0,0.3); } .s-header { background: #fffcf5; padding: 15px; border-bottom: 1px solid #fceec7; text-align: center; color: #856404; } .s-body { padding: 25px; } .s-input { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 14px; outline: none; } .s-btn { width: 100%; padding: 12px; margin-top: 15px; background: #d97706; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; } .label { font-size: 10px; font-weight: bold; color: #64748b; text-transform: uppercase; margin-top: 8px; display: block; }`;
             document.head.appendChild(style);
             const modalHTML = `<div id="${modalId}"><div class="s-card"><div class="s-header"><strong>Manual Scan-Out</strong></div><div id="s-content" class="s-body"><label class="label">REQUEST ID</label><input type="text" id="target-id" class="s-input" placeholder="e.g. 694b..." onkeyup="if(event.key==='Enter') window.verifyPass()"><button onclick="window.verifyPass()" class="s-btn">Verify Request</button><button onclick="document.getElementById('${modalId}').remove()" style="background:none; border:none; color:#999; width:100%; cursor:pointer; font-size:11px; margin-top:10px;">Cancel</button></div></div></div>`;
             document.body.insertAdjacentHTML('beforeend', modalHTML);
             const client = new Appwrite.Client().setEndpoint('https://hostelgatepass.ssn.edu.in/v1').setProject('ssn-gatepass-1');
             const database = new Appwrite.Databases(client);
             let activeId = '';
-            window.verifyPass = async () => { activeId = document.getElementById('target-id').value; try { const d = await database.getDocument('ssndb', 'gatepassRequests', activeId); const today = new Date().toISOString().split('T')[0]; document.getElementById('s-content').innerHTML = `<div class="grid"><div><label class="label">Requested Out</label><span class="val">${new Date(d.startDate).toLocaleString('en-IN')}</span></div></div><label class="label">Actual Departure</label><div class="grid"><input type="date" id="act-d" value="${today}" class="s-input"><input type="time" id="act-t" value="16:00" class="s-input"></div><button onclick="window.recordExit()" class="s-btn">Confirm Scan-Out</button>`; } catch (e) { alert("ID not found."); } };
+            window.verifyPass = async () => { activeId = document.getElementById('target-id').value; try { const d = await database.getDocument('ssndb', 'gatepassRequests', activeId); const today = new Date().toISOString().split('T')[0]; document.getElementById('s-content').innerHTML = `<label class="label">Actual Departure</label><div class="grid"><input type="date" id="act-d" value="${today}" class="s-input"><input type="time" id="act-t" value="16:00" class="s-input"></div><button onclick="window.recordExit()" class="s-btn">Record Departure</button>`; } catch (e) { alert("ID not found."); } };
             window.recordExit = async () => { const ts = new Date(`${document.getElementById('act-d').value}T${document.getElementById('act-t').value}:00+05:30`).toISOString(); try { await database.updateDocument('ssndb', 'gatepassRequests', activeId, { "outTime": ts, "status": "approved" }); document.getElementById(modalId).remove(); alert("Success!"); } catch (e) { alert("Failed: " + e.message); } };
         })();
     }
@@ -219,13 +223,13 @@
             const modalId = 'minimal-scanin-modal'; if (document.getElementById(modalId)) document.getElementById(modalId).remove();
             const style = document.createElement('style'); style.innerHTML = `#${modalId} { z-index: 2147483647; position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.6); font-family: sans-serif; } .si-card { background: #fff; width: 400px; border-radius: 8px; overflow: hidden; border: 1px solid #ddd; box-shadow: 0 10px 25px rgba(0,0,0,0.3); } .si-header { background: #f6ffed; padding: 15px; border-bottom: 1px solid #b7eb8f; text-align: center; color: #389e0d; } .si-body { padding: 25px; } .si-input { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 14px; outline: none; } .si-btn { width: 100%; padding: 12px; margin-top: 15px; background: #52c41a; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }`;
             document.head.appendChild(style);
-            const modalHTML = `<div id="${modalId}"><div class="si-card"><div class="si-header"><strong>Manual Scan-In</strong></div><div id="si-content" class="si-body"><label style="font-size:10px; font-weight:bold; color:#64748b;">REQUEST ID</label><input type="text" id="target-id-in" class="si-input"><button onclick="window.verifyPassIn()" class="si-btn">Verify</button><button onclick="document.getElementById('${modalId}').remove()" style="background:none; border:none; color:#999; width:100%; cursor:pointer; font-size:11px; margin-top:10px;">Cancel</button></div></div></div>`;
+            const modalHTML = `<div id="${modalId}"><div class="si-card"><div class="si-header"><strong>Manual Scan-In</strong></div><div id="si-content" class="si-body"><label style="font-size:10px; font-weight:bold;">REQUEST ID</label><input type="text" id="target-id-in" class="si-input" onkeyup="if(event.key==='Enter') window.verifyPassIn()"><button onclick="window.verifyPassIn()" class="si-btn">Verify</button><button onclick="document.getElementById('${modalId}').remove()" style="background:none; border:none; color:#999; width:100%; cursor:pointer; font-size:11px; margin-top:10px;">Cancel</button></div></div></div>`;
             document.body.insertAdjacentHTML('beforeend', modalHTML);
             const client = new Appwrite.Client().setEndpoint('https://hostelgatepass.ssn.edu.in/v1').setProject('ssn-gatepass-1');
             const database = new Appwrite.Databases(client);
             let activeId = '';
-            window.verifyPassIn = async () => { activeId = document.getElementById('target-id-in').value; try { const d = await database.getDocument('ssndb', 'gatepassRequests', activeId); const today = new Date().toISOString().split('T')[0]; document.getElementById('si-content').innerHTML = `<label style="font-size:10px; font-weight:bold; color:#64748b;">Actual Arrival</label><input type="date" id="act-d" value="${today}" class="si-input"><input type="time" id="act-t" value="20:30" class="si-input"><button onclick="window.recordArrival()" class="si-btn">Confirm Scan-In</button>`; } catch (e) { alert("ID not found."); } };
-            window.recordArrival = async () => { const ts = new Date(`${document.getElementById('act-d').value}T${document.getElementById('act-t').value}:00+05:30`).toISOString(); try { await database.updateDocument('ssndb', 'gatepassRequests', activeId, { "inTime": ts, "status": "approved" }); document.getElementById(modalId).remove(); alert("Success!"); } catch (e) { alert(e.message); } };
+            window.verifyPassIn = async () => { activeId = document.getElementById('target-id-in').value; try { const d = await database.getDocument('ssndb', 'gatepassRequests', activeId); const today = new Date().toISOString().split('T')[0]; document.getElementById('si-content').innerHTML = `<label style="font-size:10px; font-weight:bold;">Actual Arrival</label><div class="grid"><input type="date" id="act-d" value="${today}" class="si-input"><input type="time" id="act-t" value="20:30" class="si-input"></div><button onclick="window.recordArrival()" class="si-btn">Record Arrival</button>`; } catch (e) { alert("ID not found."); } };
+            window.recordArrival = async () => { const ts = new Date(`${document.getElementById('act-d').value}T${document.getElementById('act-t').value}:00+05:30`).toISOString(); try { await database.updateDocument('ssndb', 'gatepassRequests', activeId, { "inTime": ts, "status": "approved" }); document.getElementById(modalId).remove(); alert("Success!"); } catch (e) { alert("Failed: " + e.message); } };
         })();
     }
 
@@ -239,8 +243,8 @@
             const client = new Appwrite.Client().setEndpoint('https://hostelgatepass.ssn.edu.in/v1').setProject('ssn-gatepass-1');
             const database = new Appwrite.Databases(client);
             let tId = '';
-            window.verifyTarget = async () => { tId = document.getElementById('del-id').value; try { const d = await database.getDocument('ssndb', 'gatepassRequests', tId); document.getElementById('t-content').innerHTML = `<button onclick="window.executePurge()" class="t-btn-danger">Confirm Deletion</button>`; } catch (e) { alert("ID not found."); } };
-            window.executePurge = async () => { try { await database.deleteDocument('ssndb', 'gatepassRequests', tId); document.getElementById(modalId).remove(); alert("Deleted!"); } catch (e) { alert(e.message); } };
+            window.verifyTarget = async () => { tId = document.getElementById('del-id').value; try { const d = await database.getDocument('ssndb', 'gatepassRequests', tId); document.getElementById('t-content').innerHTML = `<p>Pass Type: ${d.requestType}</p><button onclick="window.executePurge()" class="t-btn-danger">Confirm Permanent Deletion</button>`; } catch (e) { alert("ID not found."); } };
+            window.executePurge = async () => { try { await database.deleteDocument('ssndb', 'gatepassRequests', tId); document.getElementById(modalId).remove(); alert("Deleted!"); } catch (e) { alert("Failed: " + e.message); } };
         })();
     }
 
@@ -249,7 +253,7 @@
             const modalId = 'authority-suite-modal'; if (document.getElementById(modalId)) document.getElementById(modalId).remove();
             const style = document.createElement('style'); style.innerHTML = `#${modalId} { z-index: 2147483647; position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.6); font-family: sans-serif; } .as-card { background: #fff; width: 440px; border-radius: 8px; overflow: hidden; border: 1px solid #ddd; box-shadow: 0 10px 25px rgba(0,0,0,0.3); } .as-header { background: #f8f9fa; padding: 15px; border-bottom: 1px solid #eee; text-align: center; color: #333; font-weight: bold; } .as-body { padding: 20px; } .as-input { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 14px; outline: none; } .as-btn-main { width: 100%; padding: 12px; margin-top: 15px; background: #0056b3; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; } .btn-group { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; } .opt-btn { padding: 8px 2px; font-size: 10px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; background: #fff; font-weight: bold; color: #777; } .opt-btn.active-app { background: #e6fffa; color: #088a68; border-color: #088a68; } .opt-btn.active-exm { background: #f7fafc; color: #4a5568; border-color: #4a5568; } .opt-btn.active-rej { background: #fff5f5; color: #c53030; border-color: #c53030; }`;
             document.head.appendChild(style);
-            const modalHTML = `<div id="${modalId}"><div class="as-card"><div class="as-header">Manual Approval System</div><div id="as-content" class="as-body"><input type="text" id="target-id" class="as-input" placeholder="e.g. 694b..." onkeyup="if(event.key==='Enter') window.fetchDoc()"><button onclick="window.fetchDoc()" class="as-btn-main">Verify & Load</button><button onclick="document.getElementById('${modalId}').remove()" style="background:none; border:none; color:#999; width:100%; margin-top:10px; cursor:pointer; font-size:11px;">CANCEL</button></div></div></div>`;
+            const modalHTML = `<div id="${modalId}"><div class="as-card"><div class="as-header">Manual Approval System</div><div id="as-content" class="as-body"><input type="text" id="target-id" class="as-input" onkeyup="if(event.key==='Enter') window.fetchDoc()"><button onclick="window.fetchDoc()" class="as-btn-main">Verify & Load</button><button onclick="document.getElementById('${modalId}').remove()" style="background:none; border:none; color:#999; width:100%; margin-top:10px; cursor:pointer; font-size:11px;">CANCEL</button></div></div></div>`;
             document.body.insertAdjacentHTML('beforeend', modalHTML);
             const client = new Appwrite.Client().setEndpoint('https://hostelgatepass.ssn.edu.in/v1').setProject('ssn-gatepass-1');
             const database = new Appwrite.Databases(client);
@@ -278,7 +282,7 @@
             const getB = (s) => { const v = (s || 'pending').toLowerCase(); if (v === 'approved') return `<span class="badge b-app">Approved</span>`; if (v === 'rejected') return `<span class="badge b-rej">Rejected</span>`; if (v === 'exempted') return `<span class="badge b-exm">Exempted</span>`; return `<span class="badge b-pen">Pending</span>`; };
             const fmt = (d) => d ? new Date(d).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' }) : '---';
             window.applyVFilters = () => { const dQ = document.getElementById('f-date').value.toLowerCase(); const deptQ = document.getElementById('f-dept').value.toLowerCase(); document.querySelectorAll('#v-tbody tr').forEach(row => { const matches = row.children[0].innerText.toLowerCase().includes(dQ) && row.children[3].innerText.toLowerCase().includes(deptQ); row.style.display = matches ? '' : 'none'; }); };
-            let totalFetched = 0; async function fetchBatch(offset) { try { const res = await database.listDocuments('ssndb', 'gatepassRequests', [Appwrite.Query.orderDesc('$createdAt'), Appwrite.Query.limit(100), Appwrite.Query.offset(offset)]); res.documents.forEach(d => { document.getElementById('v-tbody').insertAdjacentHTML('beforeend', `<tr><td style="color:#64748b; font-weight:600;">${fmt(d.$createdAt)}</td><td><span class="full-id">${d.$id}</span></td><td style="font-weight:bold;">${d.students?.aadharName || 'N/A'}</td><td style="font-weight:600; color:#64748b;">${d.students?.department || 'N/A'}</td><td style="font-weight:bold; color:#4338ca;">${d.requestType}</td><td style="font-size:10px;"><span style="color:#d97706;">Out: ${fmt(d.startDate)}</span><br><span style="color:#059669;">In: ${fmt(d.endDate)}</span></td><td>${getB(d.mentorApproval)}</td><td>${getB(d.supervisorApproval)}</td><td>${getB(d.wardenApproval)}</td></tr>`); }); totalFetched += res.documents.length; document.getElementById('v-status').innerText = `Retrieved ${totalFetched} records...`; if (totalFetched < 500 && totalFetched < res.total) setTimeout(() => fetchBatch(totalFetched), 50); else document.getElementById('v-status').innerHTML = `<span style="color:#16a34a;">✅ Load Complete: ${totalFetched} Total Records</span>`; } catch (e) { } } fetchBatch(0);
+            let totalFetched = 0; async function fetchBatch(offset) { try { const res = await database.listDocuments('ssndb', 'gatepassRequests', [Appwrite.Query.orderDesc('$createdAt'), Appwrite.Query.limit(100), Appwrite.Query.offset(offset)]); res.documents.forEach(d => { document.getElementById('v-tbody').insertAdjacentHTML('beforeend', `<tr><td style="color:#64748b; font-weight:600;">${fmt(d.$createdAt)}</td><td><span class="full-id-tag">${d.$id}</span></td><td style="font-weight:bold;">${d.students?.aadharName || 'N/A'}</td><td style="font-weight:600; color:#64748b;">${d.students?.department || 'N/A'}</td><td style="font-weight:bold; color:#4338ca;">${d.requestType}</td><td style="font-size:10px;"><span style="color:#d97706;">Out: ${fmt(d.startDate)}</span><br><span style="color:#059669;">In: ${fmt(d.endDate)}</span></td><td>${getB(d.mentorApproval)}</td><td>${getB(d.supervisorApproval)}</td><td>${getB(d.wardenApproval)}</td></tr>`); }); totalFetched += res.documents.length; document.getElementById('v-status').innerText = `Retrieved ${totalFetched} records...`; if (totalFetched < 500 && totalFetched < res.total) setTimeout(() => fetchBatch(totalFetched), 50); else document.getElementById('v-status').innerHTML = `<span style="color:#16a34a;">✅ Load Complete: ${totalFetched} Records</span>`; } catch (e) { } } fetchBatch(0);
         })();
     }
 
@@ -290,7 +294,7 @@
             const modalId = 'live-activity-architect'; if (document.getElementById(modalId)) document.getElementById(modalId).remove();
             const style = document.createElement('style'); style.innerHTML = `#${modalId} { z-index: 2147483647; position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.7); font-family: sans-serif; } .v-card { background: #fff; width: 98%; max-width: 1350px; height: 85vh; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); } .v-header { padding: 15px 25px; border-bottom: 1px solid #ddd; background: #f8f9fa; display: flex; justify-content: space-between; align-items: center; } .v-body { flex: 1; overflow: auto; } .v-table { width: 100%; border-collapse: collapse; font-size: 11px; } .v-table th { position: sticky; top: 0; background: #f1f5f9; padding: 12px 10px; text-align: left; color: #475569; font-weight: bold; border-bottom: 2px solid #e2e8f0; z-index: 10; } .v-table td { padding: 12px 10px; border-bottom: 1px solid #f1f5f9; color: #1e293b; vertical-align: middle; } .status-tag { padding: 4px 10px; border-radius: 4px; font-weight: bold; text-transform: uppercase; font-size: 9px; display: inline-block; } .s-new { background: #e0f2fe; color: #0369a1; } .s-wait { background: #fef3c7; color: #92400e; } .s-app { background: #dcfce7; color: #166534; } .s-out { background: #ffedd5; color: #9a3412; } .s-back { background: #f3e8ff; color: #6b21a8; } .s-rej { background: #fee2e2; color: #991b1b; } .full-id-tag { font-family: monospace; color: #4f46e5; font-weight: bold; font-size: 11px; background: #f5f3ff; padding: 2px 6px; border-radius: 4px; } .time-hint { font-size: 9px; color: #94a3b8; display: block; margin-top: 2px; font-weight: normal; }`;
             document.head.appendChild(style);
-            const modalHTML = `<div id="${modalId}"><div class="v-card"><div class="v-header"><div><strong style="font-size:16px;">Live Activity Monitor (Sorted by Update Time)</strong><div id="v-status-live" style="font-size:11px; color:#64748b;">Monitoring system...</div></div><button onclick="document.getElementById('${modalId}').remove(); window.returnToSsnHome();" style="padding:6px 12px; cursor:pointer; background:#fff; border:1px solid #ccc; border-radius:4px; font-weight:bold;">Close</button></div><div class="v-body"><table class="v-table"><thead><tr><th>REQUEST ID</th><th>STUDENT NAME</th><th>DEPARTMENT</th><th>TYPE</th><th>TRAVEL DATES</th><th>CURRENT LIFECYCLE STATUS</th></tr></thead><tbody id="v-tbody-live"></tbody></table></div></div></div>`;
+            const modalHTML = `<div id="${modalId}"><div class="v-card"><div class="v-header"><div><strong style="font-size:16px;">Live Activity Monitor (Sorted by Update Time)</strong><div id="v-status-live" style="font-size:11px; color:#64748b;">Monitoring system-wide database changes...</div></div><button onclick="document.getElementById('${modalId}').remove(); window.returnToSsnHome();" style="padding:6px 12px; cursor:pointer; background:#fff; border:1px solid #ccc; border-radius:4px; font-weight:bold;">Close</button></div><div class="v-body"><table class="v-table"><thead><tr><th>REQUEST ID</th><th>STUDENT NAME</th><th>DEPARTMENT</th><th>TYPE</th><th>TRAVEL DATES</th><th>CURRENT LIFECYCLE STATUS</th></tr></thead><tbody id="v-tbody-live"></tbody></table></div></div></div>`;
             document.body.insertAdjacentHTML('beforeend', modalHTML);
             const client = new Appwrite.Client().setEndpoint('https://hostelgatepass.ssn.edu.in/v1').setProject('ssn-gatepass-1');
             const database = new Appwrite.Databases(client);
