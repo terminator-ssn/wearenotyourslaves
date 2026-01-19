@@ -107,9 +107,6 @@
     </div>`;
     document.body.insertAdjacentHTML('beforeend', dashboardHTML);
 
-    // ==========================================
-    // 1. History Fetcher (Modified with Extra Column)
-    // ==========================================
     async function runTool1() {
         const userId = prompt("Enter Student User ID (e.g., 2430094):");
         if (!userId) { window.returnToSsnHome(); return; }
@@ -144,9 +141,6 @@
         } catch (e) { alert(e.message); }
     }
 
-    // ==========================================
-    // 2. New Pass Creator (VERBATIM CODE)
-    // ==========================================
     function runTool2() {
         (async () => {
             const modalId = 'minimal-creator-modal'; if (document.getElementById(modalId)) document.getElementById(modalId).remove();
@@ -174,7 +168,7 @@
     }
 
     // ==========================================
-    // 3. Gatepass Modifier (EXACT CODE PROVIDED)
+    // 3. Gatepass Modifier (MODIFIED)
     // ==========================================
     function runTool3() {
         (async () => {
@@ -192,17 +186,24 @@
                 if (step === 1) view.innerHTML = `<label class="label">REQUEST ID</label><input type="text" id="in-id" class="m-input" placeholder="e.g. 6966..." onkeyup="if(event.key==='Enter') window.nav(2)"><button onclick="window.nav(2)" class="m-btn">Fetch Data</button>`;
                 if (step === 2) { state.id = document.getElementById('in-id').value; if (!state.id) return; try { state.doc = await database.getDocument('ssndb', 'gatepassRequests', state.id); const types = [{ db: 'weekendPass', label: 'Weekend Pass' }, { db: 'eveningOutPass', label: 'Evening Out Pass' }, { db: 'workingDayPass', label: 'Working Day Pass' }, { db: 'holidayPass', label: 'Holiday Pass' }]; view.innerHTML = `<label class="label">SELECT PASS TYPE</label><div style="margin-top:10px;">` + types.map(t => `<div onclick="window.setPass('${t.db}')" class="type-opt ${state.doc.requestType === t.db ? 'current' : ''}">${t.label} ${state.doc.requestType === t.db ? '<span>(Current)</span>' : ''}</div>`).join('') + `</div>`; } catch (e) { alert("Error: " + e.message); window.nav(1); } }
                 if (step === 3) { const today = new Date().toISOString().split('T')[0]; view.innerHTML = `<label class="label">DESTINATION</label><input type="text" id="p-place" value="${state.doc.place || ''}" class="m-input"><label class="label" style="display:block; margin-top:10px;">PURPOSE</label><input type="text" id="p-purpose" value="${state.doc.purpose || ''}" class="m-input" onkeyup="if(event.key==='Enter') window.saveMeta()"><div class="grid"><div><label class="label">OUT DATE</label><input type="date" id="d-d" value="${today}" class="m-input"></div><div><label class="label">OUT TIME</label><input type="time" id="d-t" value="09:00" class="m-input"></div></div><div class="grid"><div><label class="label">IN DATE</label><input type="date" id="r-d" value="${today}" class="m-input"></div><div><label class="label">IN TIME</label><input type="time" id="r-t" value="21:00" class="m-input"></div></div><button onclick="window.saveMeta()" class="m-btn">Next Step</button>`; }
-                if (step === 4) { const today = new Date().toISOString().split('T')[0]; view.innerHTML = `<div style="background:#fff9f0; padding:15px; border-radius:4px; border:1px solid #ffeeba;"><strong style="font-size:14px; color:#856404;">Manual Out-Scan?</strong><div class="grid"><input type="date" id="s-d" value="${today}" class="m-input"><input type="time" id="s-t" value="16:30" class="m-input"></div></div><button onclick="window.finalize(true)" class="m-btn" style="background:#333;">Confirm with Scan</button><button onclick="window.finalize(false)" class="m-btn" style="background:#6c757d;">Confirm without Scan</button>`; }
+                if (step === 4) { const today = new Date().toISOString().split('T')[0]; view.innerHTML = `<div style="background:#fff9f0; padding:15px; border-radius:4px; border:1px solid #ffeeba;"><strong>Manual Out-Scan?</strong><div class="grid"><input type="date" id="s-d" value="${today}" class="m-input"><input type="time" id="s-t" value="16:30" class="m-input"></div></div><button onclick="window.finalize(true)" class="m-btn" style="background:#333;">Confirm with Scan</button><button onclick="window.finalize(false)" class="m-btn" style="background:#6c757d;">Confirm without Scan</button>`; }
             };
             window.setPass = (type) => { state.payload = { requestType: type, status: 'approved', wardenApproval: 'approved' }; if (type === 'workingDayPass') { state.payload.mentorApproval = 'approved'; state.payload.supervisorApproval = 'exempted'; } else { state.payload.mentorApproval = 'exempted'; state.payload.supervisorApproval = 'approved'; } window.nav(3); };
-            window.saveMeta = () => { const fmt = (d, t) => new Date(`${d}T${t}:00+05:30`).toISOString(); state.payload.place = document.getElementById('p-place').value || "Home"; state.payload.purpose = document.getElementById('p-purpose').value || "Personal"; state.payload.startDate = fmt(document.getElementById('d-d').value, document.getElementById('d-t').value); state.payload.endDate = fmt(document.getElementById('r-d').value, document.getElementById('r-t').value); window.nav(4); };
-            window.finalize = async (scan) => { if (scan) state.payload.outTime = new Date(`${document.getElementById('s-d').value}T${document.getElementById('s-t').value}:00+05:30`).toISOString(); try { await database.updateDocument('ssndb', 'gatepassRequests', state.id, state.payload); document.getElementById(modalId).remove(); alert("Pass updated successfully."); } catch (e) { alert("Failed: " + e.message); window.nav(1); } }; window.nav(1);
+            window.saveMeta = () => { const fmt = (d, t) => new Date(`${d}T${t}:00+05:30`).toISOString(); state.payload.place = document.getElementById('p-place').value || "Home"; state.payload.purpose = document.getElementById('p-purpose').value || "Personal"; state.payload.startDate = fmt(document.getElementById('d-d').value, document.getElementById('d-t').value); state.payload.endDate = fmt(document.getElementById('r-d').value, document.getElementById('r-t').value); state.payload.outTime = null; state.payload.inTime = null; window.nav(4); };
+            window.finalize = async (scan) => { 
+                if (scan) {
+                    state.payload.outTime = new Date(`${document.getElementById('s-d').value}T${document.getElementById('s-t').value}:00+05:30`).toISOString();
+                    state.payload.inTime = null;
+                } else {
+                    // Force nullification to clear any existing scans
+                    state.payload.outTime = null;
+                    state.payload.inTime = null;
+                }
+                try { await database.updateDocument('ssndb', 'gatepassRequests', state.id, state.payload); document.getElementById(modalId).remove(); alert("Pass updated successfully."); } catch (e) { alert("Failed: " + e.message); window.nav(1); } 
+            }; window.nav(1);
         })();
     }
 
-    // ==========================================
-    // 4 - 7. Manual Tools (Verbatim Logic)
-    // ==========================================
     function runTool4() {
         (async () => {
             const modalId = 'minimal-scanout-modal'; if (document.getElementById(modalId)) document.getElementById(modalId).remove();
@@ -265,9 +266,6 @@
         })();
     }
 
-    // ==========================================
-    // 8. Overall Request History (VERBATIM CODE)
-    // ==========================================
     function runTool8() {
         (async () => {
             const modalId = 'filtered-500-archive';
@@ -286,9 +284,6 @@
         })();
     }
 
-    // ==========================================
-    // 9. Live Activity Monitor (VERBATIM CODE)
-    // ==========================================
     function runTool9() {
         (async () => {
             const modalId = 'live-activity-architect'; if (document.getElementById(modalId)) document.getElementById(modalId).remove();
