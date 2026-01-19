@@ -107,7 +107,7 @@
     document.body.insertAdjacentHTML('beforeend', dashboardHTML);
 
     async function runTool1() {
-        const userId = prompt("Enter Student User ID (e.g., 2430094):");
+        const userId = prompt("Enter Student User ID");
         if (!userId) { window.returnToSsnHome(); return; }
         const modalId = 'history-fetcher-view';
         document.body.insertAdjacentHTML('beforeend', `
