@@ -43,7 +43,6 @@
             font-size: 13px; border: 2px solid white; font-family: sans-serif;
         }
 
-        /* Result Table Styles */
         .v-card-full { background: #fff; width: 98%; max-width: 1350px; height: 85vh; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         .v-header-fixed { padding: 15px 25px; border-bottom: 1px solid #ddd; background: #f8f9fa; display: flex; justify-content: space-between; align-items: center; }
         .v-table-box { flex: 1; overflow: auto; }
@@ -195,7 +194,6 @@
                     state.payload.outTime = new Date(`${document.getElementById('s-d').value}T${document.getElementById('s-t').value}:00+05:30`).toISOString();
                     state.payload.inTime = null;
                 } else {
-                    // Force nullification to clear any existing scans
                     state.payload.outTime = null;
                     state.payload.inTime = null;
                 }
@@ -229,7 +227,7 @@
             const client = new Appwrite.Client().setEndpoint('https://hostelgatepass.ssn.edu.in/v1').setProject('ssn-gatepass-1');
             const database = new Appwrite.Databases(client);
             let activeId = '';
-            window.verifyPassIn = async () => { activeId = document.getElementById('target-id-in').value; try { const d = await database.getDocument('ssndb', 'gatepassRequests', activeId); const today = new Date().toISOString().split('T')[0]; document.getElementById('si-content').innerHTML = `<label style="font-size:10px; font-weight:bold;">Actual Arrival</label><div class="grid"><input type="date" id="act-d" value="${today}" class="si-input"><input type="time" id="act-t" value="20:30" class="si-input"></div><button onclick="window.recordArrival()" class="si-btn">Record Arrival</button>`; } catch (e) { alert("ID not found."); } };
+            window.verifyPassIn = async () => { activeId = document.getElementById('target-id-in').value; try { const d = await database.getDocument('ssndb', 'gatepassRequests', activeId); const today = new Date().toISOString().split('T')[0]; document.getElementById('si-content').innerHTML = `<label style="font-size:10px; font-weight:bold;">Actual Arrival</label><div class="grid"><input type="date" id="act-d" value="${today}" class="s-input"><input type="time" id="act-t" value="20:30" class="si-input"></div><button onclick="window.recordArrival()" class="si-btn">Record Arrival</button>`; } catch (e) { alert("ID not found."); } };
             window.recordArrival = async () => { const ts = new Date(`${document.getElementById('act-d').value}T${document.getElementById('act-t').value}:00+05:30`).toISOString(); try { await database.updateDocument('ssndb', 'gatepassRequests', activeId, { "inTime": ts, "status": "approved" }); document.getElementById(modalId).remove(); alert("Success!"); } catch (e) { alert("Failed: " + e.message); } };
         })();
     }
