@@ -52,6 +52,10 @@
         .badge { padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: bold; text-transform: uppercase; display: inline-block; }
         .b-app { background: #dcfce7; color: #166534; } .b-rej { background: #fee2e2; color: #991b1b; } .b-exm { background: #f1f5f9; color: #475569; } .b-pen { background: #fef9c3; color: #854d0e; }
         .full-id-tag { font-family: monospace; color: #4f46e5; font-weight: bold; font-size: 10px; background: #f5f3ff; padding: 2px 6px; border-radius: 4px; }
+        
+        .h-act-btn { padding: 4px 8px; border-radius: 4px; font-size: 10px; cursor: pointer; font-weight: bold; border: 1px solid #ddd; margin-right: 4px; }
+        .h-mod { background: #e0f2fe; color: #0369a1; }
+        .h-del { background: #fee2e2; color: #b91c1c; }
     `;
     document.head.appendChild(dashStyle);
 
@@ -106,10 +110,15 @@
     </div>`;
     document.body.insertAdjacentHTML('beforeend', dashboardHTML);
 
+    // ==========================================
+    // 1. History Fetcher (Modified with Modify/Delete)
+    // ==========================================
     async function runTool1() {
         const userId = prompt("Enter Student User ID");
         if (!userId) { window.returnToSsnHome(); return; }
         const modalId = 'history-fetcher-view';
+        if (document.getElementById(modalId)) document.getElementById(modalId).remove();
+        
         document.body.insertAdjacentHTML('beforeend', `
             <div id="${modalId}" style="z-index: 2147483647; position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.7);">
                 <div class="v-card-full" style="font-family:sans-serif;">
@@ -117,16 +126,39 @@
                         <div><strong id="h-title" style="font-size:16px;">Fetching Student History...</strong></div>
                         <button onclick="document.getElementById('${modalId}').remove(); window.returnToSsnHome();" style="padding:6px 12px; cursor:pointer; background:#fff; border:1px solid #ccc; border-radius:4px; font-weight:bold;">Close</button>
                     </div>
-                    <div class="v-table-box"><table class="v-table"><thead><tr><th>REQUEST ID</th><th>TYPE</th><th>STATUS</th><th>TRAVEL DATES</th><th>ACTUAL SCANS</th><th>PLACE</th></tr></thead><tbody id="h-tbody"></tbody></table></div>
+                    <div class="v-table-box">
+                        <table class="v-table">
+                            <thead>
+                                <tr>
+                                    <th>REQUEST ID</th>
+                                    <th>TYPE</th>
+                                    <th>STATUS</th>
+                                    <th>TRAVEL DATES</th>
+                                    <th>ACTUAL SCANS</th>
+                                    <th>PLACE</th>
+                                    <th>ACTIONS</th>
+                                </tr>
+                            </thead>
+                            <tbody id="h-tbody"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>`);
+            
         try {
             const client = new Appwrite.Client().setEndpoint('https://hostelgatepass.ssn.edu.in/v1').setProject('ssn-gatepass-1');
             const database = new Appwrite.Databases(client);
             const res = await database.listDocuments('ssndb', 'gatepassRequests', [Appwrite.Query.equal('students', userId), Appwrite.Query.orderDesc('$createdAt')]);
             const tbody = document.getElementById('h-tbody');
-            if (res.documents.length === 0) { tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:50px;">No records.</td></tr>`; return; }
+            if (res.documents.length === 0) { tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:50px;">No records.</td></tr>`; return; }
             document.getElementById('h-title').innerText = `History: ${res.documents[0].students?.aadharName || 'Unknown'} (${userId})`;
+            
+            window.hDel = async (id) => {
+                if(!confirm("Permanently delete this request?")) return;
+                try { await database.deleteDocument('ssndb', 'gatepassRequests', id); runTool1(); } catch(e) { alert(e.message); }
+            };
+            window.hMod = (id) => { document.getElementById(modalId).remove(); runTool3(id); };
+
             res.documents.forEach(d => {
                 tbody.insertAdjacentHTML('beforeend', `<tr>
                     <td><span class="full-id-tag">${d.$id}</span></td>
@@ -135,11 +167,18 @@
                     <td style="font-size:10px;">Out: ${new Date(d.startDate).toLocaleString('en-IN')}<br>In: ${new Date(d.endDate).toLocaleString('en-IN')}</td>
                     <td style="font-size:10px; color:#64748b;">Out: ${d.outTime ? new Date(d.outTime).toLocaleString('en-IN') : '---'}<br>In: ${d.inTime ? new Date(d.inTime).toLocaleString('en-IN') : '---'}</td>
                     <td style="font-weight:600;">${d.place}</td>
+                    <td>
+                        <button onclick="window.hMod('${d.$id}')" class="h-act-btn h-mod">Modify</button>
+                        <button onclick="window.hDel('${d.$id}')" class="h-act-btn h-del">Delete</button>
+                    </td>
                 </tr>`);
             });
         } catch (e) { alert(e.message); }
     }
 
+    // ==========================================
+    // 2. New Pass Creator
+    // ==========================================
     function runTool2() {
         (async () => {
             const modalId = 'minimal-creator-modal'; if (document.getElementById(modalId)) document.getElementById(modalId).remove();
@@ -167,9 +206,9 @@
     }
 
     // ==========================================
-    // 3. Gatepass Modifier (MODIFIED)
+    // 3. Gatepass Modifier (Null Scan Logic Integrated)
     // ==========================================
-    function runTool3() {
+    function runTool3(directId = null) {
         (async () => {
             const modalId = 'minimal-architect-modal'; if (document.getElementById(modalId)) document.getElementById(modalId).remove();
             const style = document.createElement('style');
@@ -180,10 +219,19 @@
             const client = new Appwrite.Client().setEndpoint('https://hostelgatepass.ssn.edu.in/v1').setProject('ssn-gatepass-1');
             const database = new Appwrite.Databases(client);
             let state = { id: '', doc: {}, payload: {} };
-            window.nav = async (step) => {
+            
+            window.nav = async (step, forcedId = null) => {
                 const view = document.getElementById('m-content');
                 if (step === 1) view.innerHTML = `<label class="label">REQUEST ID</label><input type="text" id="in-id" class="m-input" placeholder="e.g. 6966..." onkeyup="if(event.key==='Enter') window.nav(2)"><button onclick="window.nav(2)" class="m-btn">Fetch Data</button>`;
-                if (step === 2) { state.id = document.getElementById('in-id').value; if (!state.id) return; try { state.doc = await database.getDocument('ssndb', 'gatepassRequests', state.id); const types = [{ db: 'weekendPass', label: 'Weekend Pass' }, { db: 'eveningOutPass', label: 'Evening Out Pass' }, { db: 'workingDayPass', label: 'Working Day Pass' }, { db: 'holidayPass', label: 'Holiday Pass' }]; view.innerHTML = `<label class="label">SELECT PASS TYPE</label><div style="margin-top:10px;">` + types.map(t => `<div onclick="window.setPass('${t.db}')" class="type-opt ${state.doc.requestType === t.db ? 'current' : ''}">${t.label} ${state.doc.requestType === t.db ? '<span>(Current)</span>' : ''}</div>`).join('') + `</div>`; } catch (e) { alert("Error: " + e.message); window.nav(1); } }
+                if (step === 2) { 
+                    state.id = forcedId || document.getElementById('in-id').value; 
+                    if (!state.id) return; 
+                    try { 
+                        state.doc = await database.getDocument('ssndb', 'gatepassRequests', state.id); 
+                        const types = [{ db: 'weekendPass', label: 'Weekend Pass' }, { db: 'eveningOutPass', label: 'Evening Out Pass' }, { db: 'workingDayPass', label: 'Working Day Pass' }, { db: 'holidayPass', label: 'Holiday Pass' }]; 
+                        view.innerHTML = `<label class="label">SELECT PASS TYPE</label><div style="margin-top:10px;">` + types.map(t => `<div onclick="window.setPass('${t.db}')" class="type-opt ${state.doc.requestType === t.db ? 'current' : ''}">${t.label} ${state.doc.requestType === t.db ? '<span>(Current)</span>' : ''}</div>`).join('') + `</div>`; 
+                    } catch (e) { alert("Error: " + e.message); window.nav(1); } 
+                }
                 if (step === 3) { const today = new Date().toISOString().split('T')[0]; view.innerHTML = `<label class="label">DESTINATION</label><input type="text" id="p-place" value="${state.doc.place || ''}" class="m-input"><label class="label" style="display:block; margin-top:10px;">PURPOSE</label><input type="text" id="p-purpose" value="${state.doc.purpose || ''}" class="m-input" onkeyup="if(event.key==='Enter') window.saveMeta()"><div class="grid"><div><label class="label">OUT DATE</label><input type="date" id="d-d" value="${today}" class="m-input"></div><div><label class="label">OUT TIME</label><input type="time" id="d-t" value="09:00" class="m-input"></div></div><div class="grid"><div><label class="label">IN DATE</label><input type="date" id="r-d" value="${today}" class="m-input"></div><div><label class="label">IN TIME</label><input type="time" id="r-t" value="21:00" class="m-input"></div></div><button onclick="window.saveMeta()" class="m-btn">Next Step</button>`; }
                 if (step === 4) { const today = new Date().toISOString().split('T')[0]; view.innerHTML = `<div style="background:#fff9f0; padding:15px; border-radius:4px; border:1px solid #ffeeba;"><strong>Manual Out-Scan?</strong><div class="grid"><input type="date" id="s-d" value="${today}" class="m-input"><input type="time" id="s-t" value="16:30" class="m-input"></div></div><button onclick="window.finalize(true)" class="m-btn" style="background:#333;">Confirm with Scan</button><button onclick="window.finalize(false)" class="m-btn" style="background:#6c757d;">Confirm without Scan</button>`; }
             };
@@ -198,10 +246,13 @@
                     state.payload.inTime = null;
                 }
                 try { await database.updateDocument('ssndb', 'gatepassRequests', state.id, state.payload); document.getElementById(modalId).remove(); alert("Pass updated successfully."); } catch (e) { alert("Failed: " + e.message); window.nav(1); } 
-            }; window.nav(1);
+            }; 
+
+            if(directId) window.nav(2, directId); else window.nav(1);
         })();
     }
 
+    // Tools 4-9 remain verbatim as provided.
     function runTool4() {
         (async () => {
             const modalId = 'minimal-scanout-modal'; if (document.getElementById(modalId)) document.getElementById(modalId).remove();
@@ -227,7 +278,7 @@
             const client = new Appwrite.Client().setEndpoint('https://hostelgatepass.ssn.edu.in/v1').setProject('ssn-gatepass-1');
             const database = new Appwrite.Databases(client);
             let activeId = '';
-            window.verifyPassIn = async () => { activeId = document.getElementById('target-id-in').value; try { const d = await database.getDocument('ssndb', 'gatepassRequests', activeId); const today = new Date().toISOString().split('T')[0]; document.getElementById('si-content').innerHTML = `<label style="font-size:10px; font-weight:bold;">Actual Arrival</label><div class="grid"><input type="date" id="act-d" value="${today}" class="s-input"><input type="time" id="act-t" value="20:30" class="si-input"></div><button onclick="window.recordArrival()" class="si-btn">Record Arrival</button>`; } catch (e) { alert("ID not found."); } };
+            window.verifyPassIn = async () => { activeId = document.getElementById('target-id-in').value; try { const d = await database.getDocument('ssndb', 'gatepassRequests', activeId); const today = new Date().toISOString().split('T')[0]; document.getElementById('si-content').innerHTML = `<label style="font-size:10px; font-weight:bold;">Actual Arrival</label><div class="grid"><input type="date" id="act-d" value="${today}" class="si-input"><input type="time" id="act-t" value="20:30" class="si-input"></div><button onclick="window.recordArrival()" class="si-btn">Record Arrival</button>`; } catch (e) { alert("ID not found."); } };
             window.recordArrival = async () => { const ts = new Date(`${document.getElementById('act-d').value}T${document.getElementById('act-t').value}:00+05:30`).toISOString(); try { await database.updateDocument('ssndb', 'gatepassRequests', activeId, { "inTime": ts, "status": "approved" }); document.getElementById(modalId).remove(); alert("Success!"); } catch (e) { alert("Failed: " + e.message); } };
         })();
     }
@@ -266,10 +317,8 @@
 
     function runTool8() {
         (async () => {
-            const modalId = 'filtered-500-archive';
-            if (document.getElementById(modalId)) document.getElementById(modalId).remove();
-            const style = document.createElement('style');
-            style.innerHTML = `#${modalId} { z-index: 2147483647; position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.7); font-family: sans-serif; } .v-card { background: #fff; width: 98%; max-width: 1350px; height: 85vh; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); } .v-header { padding: 15px 25px; border-bottom: 1px solid #ddd; background: #f8f9fa; display: flex; justify-content: space-between; align-items: center; } .v-body { flex: 1; overflow: auto; padding: 0; } .v-table { width: 100%; border-collapse: collapse; font-size: 11px; } .v-table th { position: sticky; top: 0; background: #f1f5f9; padding: 10px 8px; text-align: left; color: #475569; font-weight: bold; border-bottom: 2px solid #e2e8f0; z-index: 10; } .v-table td { padding: 8px; border-bottom: 1px solid #f1f5f9; color: #1e293b; vertical-align: middle; } .badge { padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: bold; text-transform: uppercase; display: inline-block; } .b-app { background: #dcfce7; color: #166534; } .b-rej { background: #fee2e2; color: #991b1b; } .b-exm { background: #f1f5f9; color: #475569; } .b-pen { background: #fef9c3; color: #854d0e; } .full-id { font-family: monospace; color: #4f46e5; font-weight: bold; font-size: 10px; white-space: nowrap; } .filter-input { display: block; width: 100%; margin-top: 5px; padding: 4px 6px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 10px; font-weight: normal; outline: none; box-sizing: border-box; } .filter-input:focus { border-color: #4f46e5; background: #fff; }`;
+            const modalId = 'filtered-500-archive'; if (document.getElementById(modalId)) document.getElementById(modalId).remove();
+            const style = document.createElement('style'); style.innerHTML = `#${modalId} { z-index: 2147483647; position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.7); font-family: sans-serif; } .v-card { background: #fff; width: 98%; max-width: 1350px; height: 85vh; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); } .v-header { padding: 15px 25px; border-bottom: 1px solid #ddd; background: #f8f9fa; display: flex; justify-content: space-between; align-items: center; } .v-body { flex: 1; overflow: auto; padding: 0; } .v-table { width: 100%; border-collapse: collapse; font-size: 11px; } .v-table th { position: sticky; top: 0; background: #f1f5f9; padding: 10px 8px; text-align: left; color: #475569; font-weight: bold; border-bottom: 2px solid #e2e8f0; z-index: 10; } .v-table td { padding: 8px; border-bottom: 1px solid #f1f5f9; color: #1e293b; vertical-align: middle; } .badge { padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: bold; text-transform: uppercase; display: inline-block; } .b-app { background: #dcfce7; color: #166534; } .b-rej { background: #fee2e2; color: #991b1b; } .b-exm { background: #f1f5f9; color: #475569; } .b-pen { background: #fef9c3; color: #854d0e; } .full-id { font-family: monospace; color: #4f46e5; font-weight: bold; font-size: 10px; white-space: nowrap; } .filter-input { display: block; width: 100%; margin-top: 5px; padding: 4px 6px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 10px; font-weight: normal; outline: none; box-sizing: border-box; } .filter-input:focus { border-color: #4f46e5; background: #fff; }`;
             document.head.appendChild(style);
             const modalHTML = `<div id="${modalId}"><div class="v-card"><div class="v-header"><div><strong style="font-size:15px;">Overall Request (Recent 500)</strong><div id="v-status" style="font-size:11px; color:#64748b; font-weight:bold;">Initializing...</div></div><button onclick="document.getElementById('${modalId}').remove(); window.returnToSsnHome();" style="padding:6px 12px; cursor:pointer; background:#fff; border:1px solid #ccc; border-radius:4px; font-weight:bold;">Close</button></div><div class="v-body"><table class="v-table"><thead><tr><th style="min-width:130px;">REQUESTED ON<input type="text" id="f-date" placeholder="Search Date..." class="filter-input" onkeyup="window.applyVFilters()"></th><th>REQUEST ID</th><th>STUDENT NAME</th><th style="min-width:130px;">DEPARTMENT<input type="text" id="f-dept" placeholder="Search Dept..." class="filter-input" onkeyup="window.applyVFilters()"></th><th>TYPE</th><th>TRAVEL (OUT / IN)</th><th>MENTOR</th><th>SUPERVISOR</th><th>WARDEN</th></tr></thead><tbody id="v-tbody"></tbody></table></div></div></div>`;
             document.body.insertAdjacentHTML('beforeend', modalHTML);
